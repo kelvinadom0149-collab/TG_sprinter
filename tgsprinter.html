@@ -1,0 +1,1458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Telegram Runner</title>
+<style>
+* {
+margin: 0;
+padding: 0;
+box-sizing: border-box;
+}
+
+body {
+font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+color: white;
+overflow: hidden;
+}
+
+#gameContainer {
+width: 100vw;
+height: 100vh;
+display: flex;
+justify-content: center;
+align-items: center;
+position: relative;
+}
+
+.screen {
+text-align: center;
+padding: 20px;
+background: rgba(0, 0, 0, 0.8);
+border-radius: 15px;
+box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.hidden {
+display: none !important;
+}
+
+h1 {
+font-size: 2.5em;
+margin-bottom: 20px;
+text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+h2 {
+font-size: 2em;
+margin-bottom: 15px;
+color: #ff6b6b;
+}
+
+button {
+background: #ff6b6b;
+color: white;
+border: none;
+padding: 15px 30px;
+font-size: 1.2em;
+border-radius: 25px;
+cursor: pointer;
+margin: 10px 5px;
+transition: all 0.3s ease;
+min-width: 150px;
+}
+
+button:hover {
+transform: scale(1.05);
+background: #ff5252;
+box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+}
+
+button.secondary {
+background: #4ECDC4;
+}
+
+button.secondary:hover {
+background: #45B7D1;
+}
+
+#gameCanvas {
+border: 2px solid #fff;
+border-radius: 10px;
+background: #87CEEB;
+touch-action: none;
+}
+
+#score, #highScore {
+font-size: 1.5em;
+margin: 10px 0;
+font-weight: bold;
+}
+
+#finalScore {
+font-size: 2em;
+margin: 20px 0;
+}
+
+.coin-display {
+position: absolute;
+top: 10px;
+left: 10px;
+font-size: 1.2em;
+color: gold;
+font-weight: bold;
+background: rgba(0,0,0,0.7);
+padding: 5px 10px;
+border-radius: 10px;
+}
+
+.powerup-display {
+position: absolute;
+top: 50px;
+left: 10px;
+font-size: 1em;
+color: white;
+background: rgba(0,0,0,0.7);
+padding: 5px 10px;
+border-radius: 10px;
+}
+
+.achievement-popup {
+position: fixed;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+background: rgba(0,0,0,0.95);
+padding: 20px;
+border-radius: 15px;
+border: 3px solid gold;
+z-index: 1000;
+text-align: center;
+box-shadow: 0 5px 25px rgba(255, 215, 0, 0.5);
+}
+
+.pause-button {
+position: absolute;
+top: 10px;
+right: 10px;
+background: rgba(255, 255, 255, 0.2);
+border: 2px solid white;
+color: white;
+padding: 10px 15px;
+border-radius: 50%;
+font-size: 1.5em;
+cursor: pointer;
+transition: all 0.3s ease;
+z-index: 100;
+}
+
+.pause-button:hover {
+background: rgba(255, 255, 255, 0.3);
+transform: scale(1.1);
+}
+
+.floating-text {
+position: absolute;
+color: gold;
+font-weight: bold;
+font-size: 1.2em;
+pointer-events: none;
+animation: floatUp 1s ease-out forwards;
+text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+@keyframes floatUp {
+0% { transform: translateY(0); opacity: 1; }
+100% { transform: translateY(-50px); opacity: 0; }
+}
+
+.stats-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 10px;
+margin: 20px 0;
+text-align: left;
+}
+
+.stat-item {
+padding: 8px;
+background: rgba(255, 255, 255, 0.1);
+border-radius: 8px;
+}
+
+.menu-buttons {
+display: flex;
+flex-direction: column;
+gap: 10px;
+margin-top: 20px;
+}
+
+.combo-display {
+position: absolute;
+top: 80px;
+left: 10px;
+font-size: 1.1em;
+color: #FF4081;
+font-weight: bold;
+background: rgba(0,0,0,0.7);
+padding: 5px 10px;
+border-radius: 10px;
+}
+
+.shop-item {
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 10px;
+margin: 5px 0;
+background: rgba(255, 255, 255, 0.1);
+border-radius: 8px;
+}
+
+.shop-item button {
+min-width: 100px;
+padding: 8px 15px;
+font-size: 0.9em;
+}
+
+.level-indicator {
+position: absolute;
+top: 110px;
+left: 10px;
+font-size: 1em;
+color: #00BCD4;
+font-weight: bold;
+background: rgba(0,0,0,0.7);
+padding: 5px 10px;
+border-radius: 10px;
+}
+
+.boss-health-bar {
+position: absolute;
+top: 10px;
+left: 50%;
+transform: translateX(-50%);
+width: 200px;
+height: 20px;
+background: rgba(0,0,0,0.7);
+border-radius: 10px;
+overflow: hidden;
+border: 2px solid white;
+}
+
+.boss-health-fill {
+height: 100%;
+background: linear-gradient(90deg, #ff0000, #ff6b6b);
+transition: width 0.3s ease;
+}
+
+.night-mode {
+background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%) !important;
+}
+
+.seasonal-theme {
+background: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%) !important;
+}
+</style>
+</head>
+<body>
+<div id="gameContainer">
+<!-- Start Screen -->
+<div id="startScreen" class="screen">
+<h1>🚀 Telegram Runner</h1>
+<p>Tap to jump over obstacles and collect coins!</p>
+<div class="stats-grid">
+<div class="stat-item">High Score: <span id="highScore">0</span></div>
+<div class="stat-item">Total Coins: <span id="totalCoins">0</span></div>
+<div class="stat-item">Games Played: <span id="gamesPlayed">0</span></div>
+<div class="stat-item">Best Combo: <span id="bestCombo">0</span></div>
+<div class="stat-item">Player Level: <span id="playerLevel">1</span></div>
+<div class="stat-item">Total Distance: <span id="totalDistance">0</span>m</div>
+</div>
+<div class="menu-buttons">
+<button id="startButton">🎮 Start Game</button>
+<button id="howToPlayButton" class="secondary">❓ How to Play</button>
+<button id="shopButton" class="secondary">🛍️ Shop</button>
+<button id="themesButton" class="secondary">🎨 Themes</button>
+</div>
+</div>
+
+<!-- How to Play Screen -->
+<div id="howToPlayScreen" class="screen hidden">
+<h2>How to Play</h2>
+<div style="text-align: left; margin: 20px 0;">
+<p>🎯 <strong>Objective:</strong> Run as far as possible while avoiding obstacles!</p>
+<p>👆 <strong>Controls:</strong> Tap anywhere to jump over obstacles</p>
+<p>💰 <strong>Coins:</strong> Collect gold coins for extra points</p>
+<p>⚡ <strong>Power-ups:</strong></p>
+<ul>
+<li>🛡️ Shield - Temporary invincibility</li>
+<li>🧲 Magnet - Attracts coins to you</li>
+<li>2x Points - Double your score</li>
+<li>⚡ Speed Boost - Run faster for a short time</li>
+</ul>
+<p>🌟 <strong>New Features:</strong></p>
+<ul>
+<li>🎯 Combo System - Chain jumps for bonus points</li>
+<li>🏆 Level System - Level up your character</li>
+<li>👾 Boss Battles - Fight bosses every 100 points</li>
+<li>🛍️ Shop - Buy upgrades and skins</li>
+<li>🎨 Themes - Customize the game appearance</li>
+</ul>
+</div>
+<button id="backToMenuButton">← Back to Menu</button>
+</div>
+
+<!-- Shop Screen -->
+<div id="shopScreen" class="screen hidden">
+<h2>🛍️ Shop</h2>
+<div style="text-align: center; margin: 10px 0; font-size: 1.2em;">
+Coins: <span style="color: gold;" id="shopCoins">0</span>
+</div>
+<div class="shop-items">
+<div class="shop-item">
+<div>
+<strong>Double Jump</strong><br>
+<small>Jump twice in the air</small>
+</div>
+<button id="buyDoubleJump" data-cost="100">100 🪙</button>
+</div>
+<div class="shop-item">
+<div>
+<strong>Speed Boost</strong><br>
+<small>Permanent +10% speed</small>
+</div>
+<button id="buySpeedBoost" data-cost="200">200 🪙</button>
+</div>
+<div class="shop-item">
+<div>
+<strong>Coin Magnet</strong><br>
+<small>Attract coins from further</small>
+</div>
+<button id="buyCoinMagnet" data-cost="150">150 🪙</button>
+</div>
+<div class="shop-item">
+<div>
+<strong>Shield Upgrade</strong><br>
+<small>Longer shield duration</small>
+</div>
+<button id="buyShieldUpgrade" data-cost="250">250 🪙</button>
+</div>
+</div>
+<button id="backToMenuFromShop">← Back to Menu</button>
+</div>
+
+<!-- Themes Screen -->
+<div id="themesScreen" class="screen hidden">
+<h2>🎨 Themes</h2>
+<div class="menu-buttons">
+<button id="themeDefault" class="secondary">🌞 Default Theme</button>
+<button id="themeNight" class="secondary">🌙 Night Mode</button>
+<button id="themeSeasonal" class="secondary">🎃 Seasonal</button>
+<button id="backToMenuFromThemes">← Back to Menu</button>
+</div>
+</div>
+
+<!-- Game Screen -->
+<div id="gameScreen" class="screen hidden">
+<button id="pauseButton" class="pause-button" title="Pause Game">⏸️</button>
+<canvas id="gameCanvas" width="300" height="500"></canvas>
+<div id="score">Score: 0</div>
+<div id="coinDisplay" class="coin-display">Coins: 0</div>
+<div id="comboDisplay" class="combo-display">Combo: 0x</div>
+<div id="levelDisplay" class="level-indicator">Level: 1</div>
+<div id="bossHealthBar" class="boss-health-bar hidden">
+<div class="boss-health-fill" style="width: 100%"></div>
+</div>
+<div id="powerUpDisplay" class="powerup-display"></div>
+</div>
+
+<!-- Pause Screen -->
+<div id="pauseScreen" class="screen hidden">
+<h2>⏸️ Game Paused</h2>
+<div class="stats-grid">
+<div class="stat-item">Current Score: <span id="pauseScore">0</span></div>
+<div class="stat-item">Coins Collected: <span id="pauseCoins">0</span></div>
+<div class="stat-item">Current Combo: <span id="pauseCombo">0</span>x</div>
+<div class="stat-item">Game Speed: <span id="pauseSpeed">0</span></div>
+<div class="stat-item">Active Power-ups: <span id="pausePowerups">0</span></div>
+<div class="stat-item">Player Level: <span id="pauseLevel">1</span></div>
+</div>
+<div class="menu-buttons">
+<button id="resumeButton">▶️ Resume Game</button>
+<button id="restartFromPauseButton" class="secondary">🔄 Restart Game</button>
+<button id="quitToMenuButton">🏠 Quit to Menu</button>
+</div>
+</div>
+
+<!-- Game Over Screen -->
+<div id="gameOverScreen" class="screen hidden">
+<h1>🎮 Game Over!</h1>
+<p id="finalScore">Score: 0</p>
+<div class="stats-grid">
+<div class="stat-item">Coins Earned: <span id="coinsEarned">0</span></div>
+<div class="stat-item">High Score: <span id="gameOverHighScore">0</span></div>
+<div class="stat-item">Max Combo: <span id="finalCombo">0</span>x</div>
+<div class="stat-item">Player Level: <span id="finalLevel">1</span></div>
+<div class="stat-item">Distance Run: <span id="finalDistance">0</span>m</div>
+<div class="stat-item">Bosses Defeated: <span id="bossesDefeated">0</span></div>
+</div>
+<div class="menu-buttons">
+<button id="restartButton">🔄 Play Again</button>
+<button id="menuButton" class="secondary">🏠 Main Menu</button>
+</div>
+</div>
+</div>
+
+<script>
+// Enhanced Game Class with All New Features
+class TelegramRunner {
+constructor() {
+this.canvas = document.getElementById('gameCanvas');
+this.ctx = this.canvas.getContext('2d');
+this.tg = window.Telegram?.WebApp || null;
+
+// Initialize systems
+this.particleSystem = new ParticleSystem(this);
+this.economySystem = new EconomySystem(this);
+this.powerUpSystem = new PowerUpSystem(this);
+this.achievementSystem = new AchievementSystem(this);
+this.upgradeSystem = new UpgradeSystem(this);
+this.themeSystem = new ThemeSystem(this);
+this.bossSystem = new BossSystem(this);
+
+// Game state
+this.gameState = 'start';
+this.score = 0;
+this.scoreMultiplier = 1;
+this.highScore = parseInt(localStorage.getItem('telegramRunnerHighScore')) || 0;
+this.gamesPlayed = parseInt(localStorage.getItem('gamesPlayed')) || 0;
+this.totalPlayTime = parseInt(localStorage.getItem('totalPlayTime')) || 0;
+this.bestCombo = parseInt(localStorage.getItem('bestCombo')) || 0;
+this.totalDistance = parseInt(localStorage.getItem('totalDistance')) || 0;
+this.bossesDefeated = parseInt(localStorage.getItem('bossesDefeated')) || 0;
+this.currentCombo = 0;
+this.comboMultiplier = 1;
+this.comboTimer = 0;
+this.comboTimeWindow = 180; // 3 seconds at 60fps
+
+// Player progression
+this.playerLevel = parseInt(localStorage.getItem('playerLevel')) || 1;
+this.playerXP = parseInt(localStorage.getItem('playerXP')) || 0;
+this.xpToNextLevel = this.calculateXPToNextLevel();
+
+// Game elements
+this.player = {
+x: 50,
+y: 0,
+width: 30,
+height: 30,
+velocityY: 0,
+isJumping: false,
+canDoubleJump: localStorage.getItem('doubleJump') === 'true',
+jumpsRemaining: 1,
+gravity: 0.8,
+jumpPower: -15,
+groundY: 0,
+};
+
+this.obstacles = [];
+this.coins = [];
+this.powerUps = [];
+this.floatingTexts = [];
+this.groundHeight = 50;
+this.gameSpeed = 5;
+this.baseGameSpeed = 5;
+this.obstacleTimer = 0;
+this.obstacleFrequency = 120;
+this.jumpCount = 0;
+this.gameStartTime = 0;
+this.currentGameTime = 0;
+
+this.init();
+}
+
+init() {
+this.resizeCanvas();
+window.addEventListener('resize', () => this.resizeCanvas());
+
+if (this.tg) {
+this.tg.expand();
+if (this.tg.BackButton) this.tg.BackButton.hide();
+}
+
+// Event listeners for menu system
+this.setupEventListeners();
+this.updateDisplays();
+this.gameLoop();
+}
+
+setupEventListeners() {
+// Start and restart buttons
+document.getElementById('startButton').addEventListener('click', () => this.startGame());
+document.getElementById('restartButton').addEventListener('click', () => this.startGame());
+document.getElementById('restartFromPauseButton').addEventListener('click', () => this.startGame());
+
+// Menu navigation
+document.getElementById('menuButton').addEventListener('click', () => this.showStartMenu());
+document.getElementById('quitToMenuButton').addEventListener('click', () => this.showStartMenu());
+document.getElementById('howToPlayButton').addEventListener('click', () => this.showHowToPlay());
+document.getElementById('backToMenuButton').addEventListener('click', () => this.showStartMenu());
+document.getElementById('shopButton').addEventListener('click', () => this.showShop());
+document.getElementById('backToMenuFromShop').addEventListener('click', () => this.showStartMenu());
+document.getElementById('themesButton').addEventListener('click', () => this.showThemes());
+document.getElementById('backToMenuFromThemes').addEventListener('click', () => this.showStartMenu());
+
+// Theme buttons
+document.getElementById('themeDefault').addEventListener('click', () => this.themeSystem.setTheme('default'));
+document.getElementById('themeNight').addEventListener('click', () => this.themeSystem.setTheme('night'));
+document.getElementById('themeSeasonal').addEventListener('click', () => this.themeSystem.setTheme('seasonal'));
+
+// Shop buttons
+document.getElementById('buyDoubleJump').addEventListener('click', () => this.upgradeSystem.buyUpgrade('doubleJump'));
+document.getElementById('buySpeedBoost').addEventListener('click', () => this.upgradeSystem.buyUpgrade('speedBoost'));
+document.getElementById('buyCoinMagnet').addEventListener('click', () => this.upgradeSystem.buyUpgrade('coinMagnet'));
+document.getElementById('buyShieldUpgrade').addEventListener('click', () => this.upgradeSystem.buyUpgrade('shieldUpgrade'));
+
+// Pause system
+document.getElementById('pauseButton').addEventListener('click', () => this.pauseGame());
+document.getElementById('resumeButton').addEventListener('click', () => this.resumeGame());
+
+// Game controls
+this.canvas.addEventListener('click', () => this.handleInput());
+this.canvas.addEventListener('touchstart', (e) => {
+e.preventDefault();
+this.handleInput();
+});
+
+// Keyboard support
+document.addEventListener('keydown', (e) => {
+if (e.key === 'Escape' || e.key === 'p') {
+if (this.gameState === 'playing') {
+this.pauseGame();
+} else if (this.gameState === 'paused') {
+this.resumeGame();
+}
+} else if (e.key === ' ' && this.gameState === 'playing') {
+this.handleInput();
+}
+});
+}
+
+calculateXPToNextLevel() {
+return this.playerLevel * 100;
+}
+
+addXP(amount) {
+this.playerXP += amount;
+if (this.playerXP >= this.xpToNextLevel) {
+this.levelUp();
+}
+localStorage.setItem('playerXP', this.playerXP);
+}
+
+levelUp() {
+this.playerLevel++;
+this.playerXP = 0;
+this.xpToNextLevel = this.calculateXPToNextLevel();
+localStorage.setItem('playerLevel', this.playerLevel);
+localStorage.setItem('playerXP', this.playerXP);
+
+// Apply level benefits
+this.baseGameSpeed += 0.5;
+this.createFloatingText(`Level Up! ${this.playerLevel}`, this.player.x, this.player.y - 50, '#00BCD4');
+}
+
+showStartMenu() {
+this.gameState = 'start';
+this.updateMenuStats();
+this.hideAllScreens();
+document.getElementById('startScreen').classList.remove('hidden');
+}
+
+showHowToPlay() {
+this.hideAllScreens();
+document.getElementById('howToPlayScreen').classList.remove('hidden');
+}
+
+showShop() {
+this.hideAllScreens();
+document.getElementById('shopScreen').classList.remove('hidden');
+this.updateShopDisplay();
+}
+
+showThemes() {
+this.hideAllScreens();
+document.getElementById('themesScreen').classList.remove('hidden');
+}
+
+updateShopDisplay() {
+document.getElementById('shopCoins').textContent = this.economySystem.totalCoins;
+}
+
+pauseGame() {
+if (this.gameState === 'playing') {
+this.gameState = 'paused';
+this.updatePauseStats();
+this.hideAllScreens();
+document.getElementById('pauseScreen').classList.remove('hidden');
+}
+}
+
+resumeGame() {
+if (this.gameState === 'paused') {
+this.gameState = 'playing';
+this.hideAllScreens();
+document.getElementById('gameScreen').classList.remove('hidden');
+}
+}
+
+updatePauseStats() {
+document.getElementById('pauseScore').textContent = this.score;
+document.getElementById('pauseCoins').textContent = this.economySystem.coinsThisGame;
+document.getElementById('pauseCombo').textContent = this.currentCombo;
+document.getElementById('pauseSpeed').textContent = this.gameSpeed.toFixed(1);
+document.getElementById('pausePowerups').textContent = this.powerUpSystem.activePowerUps.length;
+document.getElementById('pauseLevel').textContent = this.playerLevel;
+}
+
+updateMenuStats() {
+document.getElementById('highScore').textContent = this.highScore;
+document.getElementById('totalCoins').textContent = this.economySystem.totalCoins;
+document.getElementById('gamesPlayed').textContent = this.gamesPlayed;
+document.getElementById('bestCombo').textContent = this.bestCombo;
+document.getElementById('playerLevel').textContent = this.playerLevel;
+document.getElementById('totalDistance').textContent = this.totalDistance;
+}
+
+hideAllScreens() {
+const screens = ['startScreen', 'howToPlayScreen', 'shopScreen', 'themesScreen', 'gameScreen', 'pauseScreen', 'gameOverScreen'];
+screens.forEach(screen => {
+document.getElementById(screen).classList.add('hidden');
+});
+}
+
+startGame() {
+this.gamesPlayed++;
+localStorage.setItem('gamesPlayed', this.gamesPlayed);
+this.gameStartTime = Date.now();
+
+this.gameState = 'playing';
+this.score = 0;
+this.scoreMultiplier = 1;
+this.currentCombo = 0;
+this.comboMultiplier = 1;
+this.comboTimer = 0;
+this.obstacles = [];
+this.coins = [];
+this.powerUps = [];
+this.floatingTexts = [];
+this.powerUpSystem.activePowerUps = [];
+this.economySystem.coins = 0;
+this.economySystem.coinsThisGame = 0;
+this.jumpCount = 0;
+
+// Apply upgrades
+this.gameSpeed = this.baseGameSpeed;
+this.player.canDoubleJump = localStorage.getItem('doubleJump') === 'true';
+this.player.jumpsRemaining = this.player.canDoubleJump ? 2 : 1;
+
+// Reset player position
+this.player.y = this.player.groundY;
+this.player.velocityY = 0;
+this.player.isJumping = false;
+this.obstacleTimer = 0;
+
+// Reset boss system
+this.bossSystem.reset();
+
+this.hideAllScreens();
+document.getElementById('gameScreen').classList.remove('hidden');
+this.updateDisplays();
+}
+
+handleInput() {
+if (this.gameState === 'playing') {
+if (!this.player.isJumping || (this.player.canDoubleJump && this.player.jumpsRemaining > 0)) {
+this.player.velocityY = this.player.jumpPower;
+this.player.isJumping = true;
+this.player.jumpsRemaining--;
+this.jumpCount++;
+this.particleSystem.createEffect(this.player.x, this.player.y + this.player.height, '#FFFFFF', 5);
+}
+}
+}
+
+createFloatingText(text, x, y, color = 'white') {
+this.floatingTexts.push({
+text: text,
+x: x,
+y: y,
+color: color,
+life: 60
+});
+}
+
+updateFloatingText() {
+for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+this.floatingTexts[i].y -= 1;
+this.floatingTexts[i].life--;
+if (this.floatingTexts[i].life <= 0) {
+this.floatingTexts.splice(i, 1);
+}
+}
+}
+
+updateComboSystem() {
+if (this.comboTimer > 0) {
+this.comboTimer--;
+if (this.comboTimer === 0) {
+this.currentCombo = 0;
+this.comboMultiplier = 1;
+}
+}
+}
+
+updatePlayer() {
+if (this.gameState !== 'playing') return;
+
+// Apply gravity
+this.player.velocityY += this.player.gravity;
+this.player.y += this.player.velocityY;
+
+// Ground collision
+if (this.player.y > this.player.groundY) {
+this.player.y = this.player.groundY;
+this.player.velocityY = 0;
+this.player.isJumping = false;
+this.player.jumpsRemaining = this.player.canDoubleJump ? 2 : 1;
+}
+}
+
+updateObstacles() {
+if (this.gameState !== 'playing') return;
+
+this.obstacleTimer++;
+
+if (this.obstacleTimer > this.obstacleFrequency) {
+const obstacleHeight = 30 + Math.random() * 20;
+this.obstacles.push({
+x: this.canvas.width,
+y: this.canvas.height - this.groundHeight - obstacleHeight,
+width: 20 + Math.random() * 20,
+height: obstacleHeight,
+type: 'block'
+});
+
+this.obstacleTimer = 0;
+this.obstacleFrequency = Math.max(60, this.obstacleFrequency - 0.5);
+}
+
+for (let i = this.obstacles.length - 1; i >= 0; i--) {
+const obstacle = this.obstacles[i];
+obstacle.x -= this.gameSpeed;
+
+if (obstacle.x + obstacle.width < 0) {
+this.obstacles.splice(i, 1);
+this.score += 1 * this.scoreMultiplier * this.comboMultiplier;
+this.totalDistance += 1;
+localStorage.setItem('totalDistance', this.totalDistance);
+this.addXP(1);
+
+// Combo system
+this.currentCombo++;
+this.comboTimer = this.comboTimeWindow;
+this.comboMultiplier = 1 + Math.floor(this.currentCombo / 5);
+if (this.currentCombo > this.bestCombo) {
+this.bestCombo = this.currentCombo;
+localStorage.setItem('bestCombo', this.bestCombo);
+}
+
+this.updateDisplays();
+
+// Increase speed every 10 points
+if (this.score % 10 === 0) {
+this.gameSpeed += 0.5;
+}
+
+// Check for boss spawn
+if (this.score % 100 === 0 && this.score > 0) {
+this.bossSystem.spawnBoss();
+}
+}
+}
+}
+
+updateCoins() {
+if (this.gameState !== 'playing') return;
+
+this.economySystem.spawnCoin();
+
+for (let i = this.coins.length - 1; i >= 0; i--) {
+const coin = this.coins[i];
+coin.x -= this.gameSpeed;
+
+// Enhanced magnet with upgrade
+const magnetRange = this.upgradeSystem.hasUpgrade('coinMagnet') ? 150 : 100;
+if (this.powerUpSystem.hasPowerUp('magnet')) {
+const dx = this.player.x - coin.x;
+const dy = (this.player.y + this.player.height/2) - coin.y;
+const dist = Math.sqrt(dx * dx + dy * dy);
+if (dist < magnetRange) {
+coin.x += dx * 0.1;
+coin.y += dy * 0.1;
+}
+}
+
+if (this.rectIntersect(this.player, coin) && !coin.collected) {
+this.economySystem.collectCoin(coin);
+this.currentCombo++;
+this.comboTimer = this.comboTimeWindow;
+this.comboMultiplier = 1 + Math.floor(this.currentCombo / 5);
+if (this.currentCombo > this.bestCombo) {
+this.bestCombo = this.currentCombo;
+localStorage.setItem('bestCombo', this.bestCombo);
+}
+}
+
+if (coin.x + coin.width < 0 || coin.collected) {
+this.coins.splice(i, 1);
+}
+}
+}
+
+updatePowerUps() {
+if (this.gameState !== 'playing') return;
+
+this.powerUpSystem.spawnPowerUp();
+
+for (let i = this.powerUps.length - 1; i >= 0; i--) {
+const powerUp = this.powerUps[i];
+powerUp.x -= this.gameSpeed;
+
+if (this.rectIntersect(this.player, powerUp)) {
+this.powerUpSystem.collectPowerUp(powerUp);
+this.powerUps.splice(i, 1);
+} else if (powerUp.x + powerUp.width < 0) {
+this.powerUps.splice(i, 1);
+}
+}
+}
+
+checkCollisions() {
+if (this.gameState !== 'playing') return;
+if (this.powerUpSystem.hasPowerUp('shield')) return;
+
+const playerRect = {
+x: this.player.x,
+y: this.player.y,
+width: this.player.width,
+height: this.player.height
+};
+
+for (const obstacle of this.obstacles) {
+if (this.rectIntersect(playerRect, obstacle)) {
+this.currentCombo = 0;
+this.comboMultiplier = 1;
+this.gameOver();
+return;
+}
+}
+
+// Boss collision
+if (this.bossSystem.active) {
+if (this.rectIntersect(playerRect, this.bossSystem.boss)) {
+this.currentCombo = 0;
+this.comboMultiplier = 1;
+this.gameOver();
+return;
+}
+}
+}
+
+rectIntersect(rect1, rect2) {
+return rect1.x < rect2.x + rect2.width &&
+rect1.x + rect1.width > rect2.x &&
+rect1.y < rect2.y + rect2.height &&
+rect1.y + rect1.height > rect2.y;
+}
+
+gameOver() {
+this.gameState = 'gameOver';
+this.currentGameTime = Math.floor((Date.now() - this.gameStartTime) / 1000);
+this.totalPlayTime += this.currentGameTime;
+localStorage.setItem('totalPlayTime', this.totalPlayTime);
+
+if (this.score > this.highScore) {
+this.highScore = this.score;
+localStorage.setItem('telegramRunnerHighScore', this.highScore);
+}
+
+this.achievementSystem.checkAchievements();
+
+// Update game over screen
+document.getElementById('finalScore').textContent = `Score: ${this.score}`;
+document.getElementById('coinsEarned').textContent = this.economySystem.coinsThisGame;
+document.getElementById('gameOverHighScore').textContent = this.highScore;
+document.getElementById('totalPlayTime').textContent = this.totalPlayTime;
+document.getElementById('finalCombo').textContent = this.currentCombo;
+document.getElementById('finalLevel').textContent = this.playerLevel;
+document.getElementById('finalDistance').textContent = this.totalDistance;
+document.getElementById('bossesDefeated').textContent = this.bossesDefeated;
+
+this.hideAllScreens();
+document.getElementById('gameOverScreen').classList.remove('hidden');
+
+if (this.tg && this.tg.HapticFeedback) {
+this.tg.HapticFeedback.impactOccurred('heavy');
+}
+}
+
+updateDisplays() {
+document.getElementById('score').textContent = `Score: ${this.score}`;
+document.getElementById('highScore').textContent = `High Score: ${this.highScore}`;
+document.getElementById('totalCoins').textContent = `Total Coins: ${this.economySystem.totalCoins}`;
+document.getElementById('coinDisplay').textContent = `Coins: ${this.economySystem.coins}`;
+document.getElementById('comboDisplay').textContent = `Combo: ${this.currentCombo}x`;
+document.getElementById('levelDisplay').textContent = `Level: ${this.playerLevel}`;
+this.economySystem.updateDisplay();
+}
+
+draw() {
+// Apply theme
+this.themeSystem.applyTheme(this.ctx, this.canvas);
+
+// Draw background elements
+this.drawBackground();
+
+// Draw ground
+this.ctx.fillStyle = '#8B4513';
+this.ctx.fillRect(0, this.canvas.height - this.groundHeight, this.canvas.width, this.groundHeight);
+this.ctx.fillStyle = '#7CFC00';
+this.ctx.fillRect(0, this.canvas.height - this.groundHeight, this.canvas.width, 5);
+
+// Draw coins
+this.ctx.fillStyle = 'gold';
+this.coins.forEach(coin => {
+if (!coin.collected) {
+this.ctx.beginPath();
+this.ctx.arc(coin.x + coin.width/2, coin.y + coin.height/2, coin.width/2, 0, Math.PI * 2);
+this.ctx.fill();
+}
+});
+
+// Draw power-ups
+this.powerUps.forEach(powerUp => {
+this.ctx.fillStyle = powerUp.color;
+this.ctx.fillRect(powerUp.x, powerUp.y, powerUp.width, powerUp.height);
+});
+
+// Draw obstacles
+this.ctx.fillStyle = '#2E8B57';
+this.obstacles.forEach(obstacle => {
+this.ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+});
+
+// Draw boss
+if (this.bossSystem.active) {
+this.bossSystem.draw(this.ctx);
+}
+
+// Draw player with shield effect
+if (this.powerUpSystem.hasPowerUp('shield')) {
+this.ctx.strokeStyle = '#FFD700';
+this.ctx.lineWidth = 3;
+this.ctx.beginPath();
+this.ctx.arc(this.player.x + this.player.width/2, this.player.y + this.player.height/2,
+Math.max(this.player.width, this.player.height)/2 + 5, 0, Math.PI * 2);
+this.ctx.stroke();
+}
+
+this.ctx.fillStyle = '#FF6B6B';
+this.ctx.fillRect(this.player.x, this.player.y, this.player.width, this.player.height);
+
+// Draw eyes
+this.ctx.fillStyle = 'white';
+this.ctx.fillRect(this.player.x + 20, this.player.y + 8, 4, 4);
+
+// Draw particles and floating text
+this.particleSystem.draw(this.ctx);
+this.drawFloatingText();
+}
+
+drawBackground() {
+// Theme-based background elements
+this.ctx.fillStyle = this.themeSystem.getCloudColor();
+this.ctx.fillRect(50 + (this.score * 0.5) % 100, 50, 40, 20);
+this.ctx.fillRect(200 + (this.score * 0.3) % 150, 80, 50, 25);
+this.ctx.fillRect(100 + (this.score * 0.7) % 200, 120, 35, 15);
+}
+
+resizeCanvas() {
+const maxWidth = Math.min(400, window.innerWidth - 40);
+this.canvas.width = maxWidth;
+this.canvas.height = 500;
+
+// Set player position relative to ground
+this.player.groundY = this.canvas.height - this.groundHeight - this.player.height;
+this.player.y = this.player.groundY;
+}
+
+gameLoop() {
+// Update game logic
+if (this.gameState === 'playing') {
+this.updatePlayer();
+this.updateObstacles();
+this.updateCoins();
+this.updatePowerUps();
+this.updateComboSystem();
+this.powerUpSystem.update();
+this.bossSystem.update();
+this.checkCollisions();
+this.achievementSystem.checkAchievements();
+}
+
+// Update effects
+this.updateFloatingText();
+this.particleSystem.update();
+
+// Draw everything
+this.draw();
+
+// Continue the loop
+requestAnimationFrame(() => this.gameLoop());
+}
+}
+
+// New Systems
+class UpgradeSystem {
+constructor(game) {
+this.game = game;
+this.upgrades = {
+doubleJump: { purchased: localStorage.getItem('doubleJump') === 'true', cost: 100 },
+speedBoost: { purchased: localStorage.getItem('speedBoost') === 'true', cost: 200 },
+coinMagnet: { purchased: localStorage.getItem('coinMagnet') === 'true', cost: 150 },
+shieldUpgrade: { purchased: localStorage.getItem('shieldUpgrade') === 'true', cost: 250 }
+};
+}
+
+buyUpgrade(upgradeId) {
+const upgrade = this.upgrades[upgradeId];
+if (!upgrade.purchased && this.game.economySystem.totalCoins >= upgrade.cost) {
+this.game.economySystem.totalCoins -= upgrade.cost;
+upgrade.purchased = true;
+localStorage.setItem(upgradeId, 'true');
+localStorage.setItem('totalCoins', this.game.economySystem.totalCoins);
+this.game.updateShopDisplay();
+this.game.updateMenuStats();
+
+// Apply upgrade effects
+if (upgradeId === 'speedBoost') {
+this.game.baseGameSpeed += 1;
+}
+}
+}
+
+hasUpgrade(upgradeId) {
+return this.upgrades[upgradeId]?.purchased || false;
+}
+}
+
+class ThemeSystem {
+constructor(game) {
+this.game = game;
+this.currentTheme = localStorage.getItem('gameTheme') || 'default';
+this.applyThemeToDOM();
+}
+
+setTheme(themeName) {
+this.currentTheme = themeName;
+localStorage.setItem('gameTheme', themeName);
+this.applyThemeToDOM();
+}
+
+applyThemeToDOM() {
+document.body.className = '';
+if (this.currentTheme === 'night') {
+document.body.classList.add('night-mode');
+} else if (this.currentTheme === 'seasonal') {
+document.body.classList.add('seasonal-theme');
+}
+}
+
+applyTheme(ctx, canvas) {
+if (this.currentTheme === 'night') {
+ctx.fillStyle = '#2c3e50';
+} else if (this.currentTheme === 'seasonal') {
+ctx.fillStyle = '#ff6b6b';
+} else {
+ctx.fillStyle = '#87CEEB';
+}
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+getCloudColor() {
+if (this.currentTheme === 'night') return 'rgba(200, 200, 255, 0.6)';
+if (this.currentTheme === 'seasonal') return 'rgba(255, 255, 255, 0.9)';
+return 'rgba(255, 255, 255, 0.8)';
+}
+}
+
+class BossSystem {
+constructor(game) {
+this.game = game;
+this.active = false;
+this.boss = null;
+this.bossHealth = 0;
+this.bossMaxHealth = 0;
+}
+
+spawnBoss() {
+this.active = true;
+this.bossMaxHealth = 100 + (this.game.score / 100) * 50;
+this.bossHealth = this.bossMaxHealth;
+this.boss = {
+x: this.game.canvas.width,
+y: this.game.canvas.height - this.game.groundHeight - 80,
+width: 60,
+height: 80,
+speed: 3
+};
+document.getElementById('bossHealthBar').classList.remove('hidden');
+this.game.createFloatingText('BOSS INCOMING!', this.game.canvas.width/2, 100, '#FF0000');
+}
+
+update() {
+if (!this.active) return;
+
+// Move boss
+this.boss.x -= this.boss.speed;
+
+// Boss attacks
+if (Math.random() < 0.02) {
+this.createProjectile();
+}
+
+// Check if boss is defeated
+if (this.bossHealth <= 0) {
+this.defeatBoss();
+}
+
+// Update health bar
+const healthPercent = (this.bossHealth / this.bossMaxHealth) * 100;
+document.querySelector('.boss-health-fill').style.width = `${healthPercent}%`;
+
+// Check if boss reached left side
+if (this.boss.x + this.boss.width < 0) {
+this.active = false;
+document.getElementById('bossHealthBar').classList.add('hidden');
+}
+}
+
+createProjectile() {
+this.game.obstacles.push({
+x: this.boss.x,
+y: this.boss.y + this.boss.height/2,
+width: 15,
+height: 15,
+type: 'bossProjectile',
+speed: 6
+});
+}
+
+takeDamage(amount) {
+this.bossHealth -= amount;
+if (this.bossHealth < 0) this.bossHealth = 0;
+}
+
+defeatBoss() {
+this.active = false;
+this.game.bossesDefeated++;
+localStorage.setItem('bossesDefeated', this.game.bossesDefeated);
+this.game.score += 50;
+this.game.economySystem.totalCoins += 25;
+this.game.createFloatingText('BOSS DEFEATED! +50', this.boss.x, this.boss.y, '#FFD700');
+document.getElementById('bossHealthBar').classList.add('hidden');
+}
+
+draw(ctx) {
+if (!this.active) return;
+
+// Draw boss
+ctx.fillStyle = '#8B0000';
+ctx.fillRect(this.boss.x, this.boss.y, this.boss.width, this.boss.height);
+ctx.fillStyle = '#FF0000';
+ctx.fillRect(this.boss.x + 10, this.boss.y + 15, 15, 10);
+ctx.fillRect(this.boss.x + 35, this.boss.y + 15, 15, 10);
+}
+
+reset() {
+this.active = false;
+this.boss = null;
+this.bossHealth = 0;
+document.getElementById('bossHealthBar').classList.add('hidden');
+}
+}
+
+// Existing Systems (ParticleSystem, EconomySystem, PowerUpSystem, AchievementSystem)
+class ParticleSystem {
+constructor(game) {
+this.game = game;
+this.particles = [];
+}
+
+createEffect(x, y, color, count = 10) {
+for (let i = 0; i < count; i++) {
+this.particles.push({
+x: x,
+y: y,
+size: Math.random() * 3 + 1,
+speedX: (Math.random() - 0.5) * 4,
+speedY: Math.random() * -3 - 1,
+life: 30,
+color: color
+});
+}
+}
+
+update() {
+for (let i = this.particles.length - 1; i >= 0; i--) {
+const particle = this.particles[i];
+particle.x += particle.speedX;
+particle.y += particle.speedY;
+particle.life--;
+
+if (particle.life <= 0) {
+this.particles.splice(i, 1);
+}
+}
+}
+
+draw(ctx) {
+this.particles.forEach(particle => {
+ctx.fillStyle = particle.color;
+ctx.globalAlpha = particle.life / 30;
+ctx.fillRect(particle.x, particle.y, particle.size, particle.size);
+});
+ctx.globalAlpha = 1;
+}
+}
+
+class EconomySystem {
+constructor(game) {
+this.game = game;
+this.coins = 0;
+this.coinsThisGame = 0;
+this.totalCoins = parseInt(localStorage.getItem('totalCoins')) || 0;
+this.coinMultiplier = 1;
+}
+
+spawnCoin() {
+if (Math.random() < 0.03 && this.game.obstacles.length > 0) {
+this.game.coins.push({
+x: this.game.canvas.width,
+y: this.game.canvas.height - 120 + Math.random() * 50,
+width: 15,
+height: 15,
+value: 1,
+collected: false
+});
+}
+}
+
+collectCoin(coin) {
+coin.collected = true;
+this.coins += coin.value * this.coinMultiplier;
+this.coinsThisGame += coin.value * this.coinMultiplier;
+this.totalCoins += coin.value * this.coinMultiplier;
+localStorage.setItem('totalCoins', this.totalCoins);
+
+// Visual feedback
+this.game.createFloatingText('+1 coin', coin.x, coin.y, 'gold');
+this.game.particleSystem.createEffect(coin.x, coin.y, 'gold', 8);
+}
+
+updateDisplay() {
+document.getElementById('coinDisplay').textContent = `Coins: ${this.coins}`;
+}
+}
+
+class PowerUpSystem {
+constructor(game) {
+this.game = game;
+this.activePowerUps = [];
+this.powerUpTypes = {
+shield: {
+duration: 5000,
+effect: 'invincible',
+color: '#FFD700',
+text: '🛡️ Shield'
+},
+magnet: {
+duration: 7000,
+effect: 'attractCoins',
+color: '#FF4081',
+text: '🧲 Magnet'
+},
+doublePoints: {
+duration: 10000,
+effect: 'doubleScore',
+color: '#00BCD4',
+text: '2x Points'
+},
+speedBoost: {
+duration: 8000,
+effect: 'speedBoost',
+color: '#9C27B0',
+text: '⚡ Speed'
+}
+};
+}
+
+spawnPowerUp() {
+if (Math.random() < 0.008 && this.game.obstacles.length > 0) {
+const types = Object.keys(this.powerUpTypes);
+const type = types[Math.floor(Math.random() * types.length)];
+
+this.game.powerUps.push({
+x: this.game.canvas.width,
+y: this.game.canvas.height - 150,
+width: 25,
+height: 25,
+type: type,
+color: this.powerUpTypes[type].color,
+...this.powerUpTypes[type]
+});
+}
+}
+
+collectPowerUp(powerUp) {
+this.activePowerUps.push({
+type: powerUp.type,
+endTime: Date.now() + powerUp.duration
+});
+
+this.game.createFloatingText(powerUp.text, powerUp.x, powerUp.y, powerUp.color);
+this.game.particleSystem.createEffect(powerUp.x, powerUp.y, powerUp.color, 15);
+
+// Apply immediate effects
+if (powerUp.type === 'doublePoints') {
+this.game.scoreMultiplier = 2;
+} else if (powerUp.type === 'speedBoost') {
+this.game.gameSpeed += 3;
+}
+}
+
+update() {
+const now = Date.now();
+for (let i = this.activePowerUps.length - 1; i >= 0; i--) {
+const powerUp = this.activePowerUps[i];
+if (now >= powerUp.endTime) {
+this.deactivatePowerUp(powerUp.type);
+this.activePowerUps.splice(i, 1);
+}
+}
+this.updateDisplay();
+}
+
+deactivatePowerUp(type) {
+if (type === 'doublePoints') {
+this.game.scoreMultiplier = 1;
+} else if (type === 'speedBoost') {
+this.game.gameSpeed = Math.max(this.game.baseGameSpeed, this.game.gameSpeed - 3);
+}
+}
+
+updateDisplay() {
+const display = document.getElementById('powerUpDisplay');
+if (this.activePowerUps.length > 0) {
+display.innerHTML = this.activePowerUps.map(p =>
+`<span style="color: ${this.powerUpTypes[p.type].color}">${this.powerUpTypes[p.type].text}</span>`
+).join(' ');
+} else {
+display.innerHTML = '';
+}
+}
+
+hasPowerUp(type) {
+return this.activePowerUps.some(p => p.type === type);
+}
+}
+
+class AchievementSystem {
+constructor(game) {
+this.game = game;
+this.achievements = {
+first_jump: { name: "First Leap!", desc: "Make your first jump", earned: false },
+score_50: { name: "Half Century", desc: "Score 50 points", earned: false },
+score_100: { name: "Centurion", desc: "Score 100 points", earned: false },
+coin_collector: { name: "Coin Collector", desc: "Collect 20 coins", earned: false },
+obstacle_dodger: { name: "Dodger", desc: "Dodge 50 obstacles", earned: false },
+boss_slayer: { name: "Boss Slayer", desc: "Defeat your first boss", earned: false },
+combo_master: { name: "Combo Master", desc: "Reach 10x combo", earned: false },
+level_5: { name: "Seasoned Runner", desc: "Reach level 5", earned: false }
+};
+this.loadAchievements();
+}
+
+loadAchievements() {
+const saved = localStorage.getItem('achievements');
+if (saved) {
+this.achievements = JSON.parse(saved);
+}
+}
+
+checkAchievements() {
+if (this.game.score >= 50 && !this.achievements.score_50.earned) {
+this.unlockAchievement('score_50');
+}
+if (this.game.score >= 100 && !this.achievements.score_100.earned) {
+this.unlockAchievement('score_100');
+}
+if (this.game.economySystem.coinsThisGame >= 20 && !this.achievements.coin_collector.earned) {
+this.unlockAchievement('coin_collector');
+}
+if (this.game.score >= 50 && !this.achievements.obstacle_dodger.earned) {
+this.unlockAchievement('obstacle_dodger');
+}
+if (this.game.bossesDefeated > 0 && !this.achievements.boss_slayer.earned) {
+this.unlockAchievement('boss_slayer');
+}
+if (this.game.currentCombo >= 10 && !this.achievements.combo_master.earned) {
+this.unlockAchievement('combo_master');
+}
+if (this.game.playerLevel >= 5 && !this.achievements.level_5.earned) {
+this.unlockAchievement('level_5');
+}
+}
+
+unlockAchievement(achievementId) {
+this.achievements[achievementId].earned = true;
+this.showAchievementPopup(this.achievements[achievementId].name);
+localStorage.setItem('achievements', JSON.stringify(this.achievements));
+}
+
+showAchievementPopup(name) {
+const popup = document.createElement('div');
+popup.className = 'achievement-popup';
+popup.innerHTML = `
+<h3>🏆 Achievement Unlocked!</h3>
+<p>${name}</p>
+`;
+document.body.appendChild(popup);
+
+setTimeout(() => {
+popup.remove();
+}, 3000);
+}
+}
+
+// Initialize game
+document.addEventListener('DOMContentLoaded', () => {
+new TelegramRunner();
+});
+</script>
+</body>
+</html>

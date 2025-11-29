@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Telegram Runner</title>
 <style>
 * {
@@ -1434,6 +1437,104 @@ this.showAchievementPopup(this.achievements[achievementId].name);
 localStorage.setItem('achievements', JSON.stringify(this.achievements));
 }
 
+class TelegramIntegration {
+constructor() {
+this.tg = window.Telegram?.WebApp;
+this.init();
+}
+
+init() {
+if (this.tg) {
+// Expand to full screen
+this.tg.expand();
+
+// Set theme colors to match Telegram
+this.tg.setHeaderColor('#667eea');
+this.tg.setBackgroundColor('#667eea');
+
+// Enable closing confirmation
+this.tg.enableClosingConfirmation();
+
+// Setup back button
+this.setupBackButton();
+
+console.log('Telegram Web App initialized');
+}
+}
+
+setupBackButton() {
+if (this.tg?.BackButton) {
+this.tg.BackButton.show();
+this.tg.BackButton.onClick(() => {
+// Go back to previous screen or close
+if (window.history.length > 1) {
+window.history.back();
+} else {
+this.tg.close();
+}
+});
+}
+}
+
+// Send data back to bot (scores, etc.)
+sendGameData(data) {
+if (this.tg) {
+this.tg.sendData(JSON.stringify(data));
+}
+}
+
+// Get user info
+getUser() {
+return this.tg?.initDataUnsafe?.user;
+}
+
+// Show alert in Telegram style
+showAlert(message) {
+if (this.tg) {
+this.tg.showAlert(message);
+} else {
+alert(message);
+}
+}
+
+// Close the web app
+close() {
+if (this.tg) {
+this.tg.close();
+}
+}
+}
+
+// Initialize Telegram integration in your main game class
+class TelegramRunner {
+constructor() {
+// ... your existing code ...
+
+// Add Telegram integration
+this.telegram = new TelegramIntegration();
+
+// Modify game over to send data back
+this.setupTelegramFeatures();
+}
+
+setupTelegramFeatures() {
+// Send score data when game ends
+const originalGameOver = this.gameOver.bind(this);
+this.gameOver = () => {
+originalGameOver();
+
+// Send data back to bot
+this.telegram.sendGameData({
+action: 'gameOver',
+score: this.score,
+coins: this.economySystem.coinsThisGame,
+level: this.playerLevel,
+highScore: this.highScore
+});
+};
+}
+}
+
 showAchievementPopup(name) {
 const popup = document.createElement('div');
 popup.className = 'achievement-popup';
@@ -1455,4 +1556,5 @@ new TelegramRunner();
 });
 </script>
 </body>
+
 </html>
